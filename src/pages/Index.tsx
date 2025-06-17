@@ -1,68 +1,35 @@
 
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UserPlus, Sun, Moon, LogOut } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
+import { useAuth } from "../hooks/useAuth";
+import { useSupabaseConfig } from "../hooks/useSupabaseConfig";
 
 const Index = () => {
-  const { theme, toggleTheme } = useTheme();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({ name: "John Doe", email: "john@example.com" });
+  const { theme, toggleTheme, updateUserMetadata } = useTheme();
+  const { user, signOut } = useAuth();
+  const { getSetting } = useSupabaseConfig();
 
-  // Mock authentication check
-  useEffect(() => {
-    const authStatus = localStorage.getItem("isAuthenticated");
-    setIsLoggedIn(authStatus === "true");
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    setIsLoggedIn(false);
+  const handleThemeToggle = async () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    toggleTheme();
+    
+    // Save theme preference to Supabase user metadata
+    try {
+      await updateUserMetadata({ theme: newTheme });
+    } catch (error) {
+      console.error('Failed to save theme preference:', error);
+    }
   };
 
-  // Mock contact stats
+  // Mock contact stats - in a real app, you'd fetch these from Supabase
   const contactStats = {
     total: 42,
     recent: 5,
     favorites: 8
   };
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-              <Users className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Contact Manager</h1>
-            <p className="text-gray-600 dark:text-gray-300">Manage your contacts with ease</p>
-          </div>
-          
-          <Card className="shadow-xl">
-            <CardHeader className="text-center">
-              <CardTitle>Welcome Back</CardTitle>
-              <CardDescription>Sign in to access your contacts</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Link to="/login" className="w-full">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/register" className="w-full">
-                <Button variant="outline" className="w-full">
-                  Create Account
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -81,18 +48,20 @@ const Index = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={toggleTheme}
+                onClick={handleThemeToggle}
                 className="rounded-full"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
               
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700 dark:text-gray-300">{user.name}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {user?.email}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleLogout}
+                  onClick={signOut}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <LogOut className="w-4 h-4" />
@@ -160,7 +129,7 @@ const Index = () => {
                   Add New Contact
                 </Button>
               </Link>
-              <Link to="/contacts" className="block">
+              <Link to={getSetting('contacts_url', '/contacts')} className="block">
                 <Button className="w-full justify-start" variant="outline">
                   <Users className="w-4 h-4 mr-2" />
                   View All Contacts

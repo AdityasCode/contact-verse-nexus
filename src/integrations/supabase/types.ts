@@ -45,6 +45,117 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          id: string
+          page_url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          id?: string
+          page_url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          id?: string
+          page_url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      ui_texts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      validation_rules: {
+        Row: {
+          created_at: string
+          error_message: string
+          field_name: string
+          id: string
+          rule_type: string
+          rule_value: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          field_name: string
+          id?: string
+          rule_type: string
+          rule_value?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          field_name?: string
+          id?: string
+          rule_type?: string
+          rule_value?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

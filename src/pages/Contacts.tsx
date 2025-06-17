@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,22 +22,36 @@ import {
   LogOut
 } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
+import { useAuth } from "../hooks/useAuth";
 import { useContacts } from "../hooks/useContacts";
-
-const ITEMS_PER_PAGE = 25;
+import { useSupabaseConfig } from "../hooks/useSupabaseConfig";
 
 const Contacts = () => {
-  const { theme, toggleTheme } = useTheme();
-  const { contacts, loading, searchTerm, setSearchTerm, deleteContact } = useContacts();
-  const [currentPage, setCurrentPage] = useState(1);
+  const { theme, toggleTheme, updateUserMetadata } = useTheme();
+  const { signOut } = useAuth();
+  const { getText, getSetting } = useSupabaseConfig();
+  const { 
+    contacts, 
+    loading, 
+    searchTerm, 
+    setSearchTerm, 
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    totalCount,
+    deleteContact 
+  } = useContacts();
 
-  const totalPages = Math.ceil(contacts.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedContacts = contacts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    window.location.href = "/";
+  const handleThemeToggle = async () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    toggleTheme();
+    
+    // Save theme preference to Supabase user metadata
+    try {
+      await updateUserMetadata({ theme: newTheme });
+    } catch (error) {
+      console.error('Failed to save theme preference:', error);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -52,7 +65,7 @@ const Contacts = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Link to="/">
+              <Link to={getSetting('default_landing', '/')}>
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back
@@ -68,7 +81,7 @@ const Contacts = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={toggleTheme}
+                onClick={handleThemeToggle}
                 className="rounded-full"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -77,7 +90,7 @@ const Contacts = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleLogout}
+                onClick={signOut}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <LogOut className="w-4 h-4" />
@@ -116,7 +129,7 @@ const Contacts = () => {
         {/* Results Header */}
         <div className="mb-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {paginatedContacts.length} of {contacts.length} contacts
+            Showing {contacts.length} of {totalCount} contacts
             {currentPage > 1 && ` (Page ${currentPage} of ${totalPages})`}
           </p>
         </div>
@@ -124,21 +137,29 @@ const Contacts = () => {
         {/* Contacts Table */}
         {loading ? (
           <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-500 dark:text-gray-400">Loading contacts...</p>
           </div>
         ) : contacts.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No contacts found</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              {searchTerm ? getText('no_search_results', 'No contacts match your search criteria.') : 'No contacts found'}
+            </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm ? "Try adjusting your search terms" : "Get started by adding your first contact"}
+              {searchTerm 
+                ? "Try adjusting your search terms" 
+                : getText('empty_contacts', 'Get started by adding your first contact')
+              }
             </p>
-            <Link to="/contacts/new">
-              <Button>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add Your First Contact
-              </Button>
-            </Link>
+            {!searchTerm && (
+              <Link to="/contacts/new">
+                <Button>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Your First Contact
+                </Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -154,7 +175,7 @@ const Contacts = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedContacts.map((contact) => (
+                {contacts.map((contact) => (
                   <TableRow key={contact.id}>
                     <TableCell className="font-medium">
                       {contact.first_name} {contact.last_name}

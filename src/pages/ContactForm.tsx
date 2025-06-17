@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { 
   ArrowLeft, 
   Save, 
@@ -17,6 +16,16 @@ import {
 } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ContactFormData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  company: string;
+  notes: string;
+}
 
 const ContactForm = () => {
   const { id } = useParams();
@@ -24,64 +33,202 @@ const ContactForm = () => {
   const { theme, toggleTheme } = useTheme();
   const isEditing = Boolean(id);
   
-  const [formData, setFormData] = useState({
-    name: "",
+  const [formData, setFormData] = useState<ContactFormData>({
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     company: "",
-    position: "",
-    location: "",
-    website: "",
-    notes: "",
-    isFavorite: false
+    notes: ""
   });
   
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (isEditing) {
-      // Mock loading existing contact data
-      setFormData({
-        name: "Sarah Johnson",
-        email: "sarah.johnson@email.com",
-        phone: "+1 (555) 123-4567",
-        company: "Tech Solutions Inc",
-        position: "Senior Developer",
-        location: "New York, NY",
-        website: "https://techsolutions.com",
-        notes: "Met at tech conference. Interested in our new product.",
-        isFavorite: true
-      });
+    if (isEditing && id) {
+      fetchContact(id);
     }
-  }, [isEditing]);
+  }, [isEditing, id]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  const fetchContact = async (contactId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('id', contactId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching contact:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load contact",
+          variant: "destructive",
+        });
+        navigate('/contacts');
+        return;
+      }
+
+      if (data) {
+        setFormData({
+          first_name: data.first_name || '',
+          last_name: data.last_name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          company: data.company || '',
+          notes: data.notes || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData({
-      ...formData,
-      isFavorite: checked
-    });
+  const validateForm = async (): Promise<boolean> => {
+    const errors: Record<string, string> = {};
+
+    // Required fields
+    if (!formData.first_name.trim()) {
+      errors.first_name = "First name is required";
+    }
+    if (!formData.last_name.trim()) {
+      errors.last_name = "Last name is required";
+    }
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    // Check email uniqueness
+    if (formData.email && !errors.email) {
+      try {
+        let query = supabase
+          .from('contacts')
+          .select('id')
+          .eq('email', formData.email);
+
+        if (isEditing && id) {
+          query = query.neq('id', id);
+        }
+
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error checking email uniqueness:', error);
+        } else if (data && data.length > 0) {
+          errors.email = "This email is already in use by another contact";
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const isValid = await validateForm();
+    if (!isValid) {
+      return;
+    }
+
     setIsLoading(true);
 
-    // Mock save operation - replace with Supabase
-    setTimeout(() => {
-      toast({
-        title: isEditing ? "Contact updated!" : "Contact added!",
-        description: `${formData.name} has been ${isEditing ? "updated" : "added"} to your contacts.`,
-      });
+    try {
+      if (isEditing && id) {
+        // Update existing contact
+        const { error } = await supabase
+          .from('contacts')
+          .update({
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim(),
+            email: formData.email.trim(),
+            phone: formData.phone.trim() || null,
+            company: formData.company.trim() || null,
+            notes: formData.notes.trim() || null
+          })
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error updating contact:', error);
+          toast({
+            title: "Error",
+            description: "Failed to update contact",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Contact updated!",
+          description: `${formData.first_name} ${formData.last_name} has been updated.`,
+        });
+      } else {
+        // Create new contact
+        const { error } = await supabase
+          .from('contacts')
+          .insert({
+            first_name: formData.first_name.trim(),
+            last_name: formData.last_name.trim(),
+            email: formData.email.trim(),
+            phone: formData.phone.trim() || null,
+            company: formData.company.trim() || null,
+            notes: formData.notes.trim() || null,
+            created_by: (await supabase.auth.getUser()).data.user?.id
+          });
+
+        if (error) {
+          console.error('Error creating contact:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create contact",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Contact added!",
+          description: `${formData.first_name} ${formData.last_name} has been added to your contacts.`,
+        });
+      }
+
       navigate("/contacts");
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleLogout = () => {
@@ -155,30 +302,52 @@ const ContactForm = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
+                    <Label htmlFor="first_name">First Name *</Label>
                     <Input
-                      id="name"
-                      name="name"
+                      id="first_name"
+                      name="first_name"
                       type="text"
-                      placeholder="John Doe"
-                      value={formData.name}
+                      placeholder="John"
+                      value={formData.first_name}
                       onChange={handleChange}
-                      required
+                      className={validationErrors.first_name ? "border-red-500" : ""}
                     />
+                    {validationErrors.first_name && (
+                      <p className="text-sm text-red-500">{validationErrors.first_name}</p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
+                    <Label htmlFor="last_name">Last Name *</Label>
                     <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="john@example.com"
-                      value={formData.email}
+                      id="last_name"
+                      name="last_name"
+                      type="text"
+                      placeholder="Doe"
+                      value={formData.last_name}
                       onChange={handleChange}
-                      required
+                      className={validationErrors.last_name ? "border-red-500" : ""}
                     />
+                    {validationErrors.last_name && (
+                      <p className="text-sm text-red-500">{validationErrors.last_name}</p>
+                    )}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="john@example.com"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={validationErrors.email ? "border-red-500" : ""}
+                  />
+                  {validationErrors.email && (
+                    <p className="text-sm text-red-500">{validationErrors.email}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -195,27 +364,6 @@ const ContactForm = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      name="location"
-                      type="text"
-                      placeholder="New York, NY"
-                      value={formData.location}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Professional Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                  Professional Information
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
                     <Label htmlFor="company">Company</Label>
                     <Input
                       id="company"
@@ -226,30 +374,6 @@ const ContactForm = () => {
                       onChange={handleChange}
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="position">Position</Label>
-                    <Input
-                      id="position"
-                      name="position"
-                      type="text"
-                      placeholder="Software Engineer"
-                      value={formData.position}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    name="website"
-                    type="url"
-                    placeholder="https://example.com"
-                    value={formData.website}
-                    onChange={handleChange}
-                  />
                 </div>
               </div>
 
@@ -270,21 +394,12 @@ const ContactForm = () => {
                     rows={4}
                   />
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="favorite"
-                    checked={formData.isFavorite}
-                    onCheckedChange={handleSwitchChange}
-                  />
-                  <Label htmlFor="favorite">Mark as favorite</Label>
-                </div>
               </div>
 
               {/* Form Actions */}
               <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <Link to="/contacts">
-                  <Button variant="outline">Cancel</Button>
+                  <Button variant="outline" type="button">Cancel</Button>
                 </Link>
                 <Button type="submit" disabled={isLoading}>
                   <Save className="w-4 h-4 mr-2" />

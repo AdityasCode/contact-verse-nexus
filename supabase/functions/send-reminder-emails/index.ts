@@ -46,7 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
         apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, brevoApiKey);
 
         const now = new Date();
-        const offsetMs = (5 * 60 + 30) * 60 * 1000; // 5 hours 30 minutes in ms
+        const offsetMs = (5 * 60 + 29) * 60 * 1000; // 5 hours 30 minutes in ms
         const adjustedNow = new Date(now.getTime() + offsetMs);
         const oneMinuteFromNow = new Date(adjustedNow.getTime() + 60000);
         const { data: reminders, error: queryError } = await supabase

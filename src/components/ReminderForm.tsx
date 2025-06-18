@@ -21,7 +21,7 @@ export const ReminderForm = ({ onClose, onSuccess }: ReminderFormProps) => {
     title: '',
     description: '',
     remind_at: '',
-    contact_id: ''
+    contact_id: 'none'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -79,7 +79,7 @@ export const ReminderForm = ({ onClose, onSuccess }: ReminderFormProps) => {
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
         remind_at: formData.remind_at,
-        contact_id: formData.contact_id || undefined
+        contact_id: formData.contact_id === 'none' ? undefined : formData.contact_id
       };
 
       const result = await createReminder(reminderData);
@@ -174,7 +174,7 @@ export const ReminderForm = ({ onClose, onSuccess }: ReminderFormProps) => {
                 <SelectValue placeholder="Select a contact" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No contact</SelectItem>
+                <SelectItem value="none">No contact</SelectItem>
                 {contacts.map((contact) => (
                   <SelectItem key={contact.id} value={contact.id}>
                     {contact.first_name} {contact.last_name}

@@ -17,9 +17,11 @@ export type Database = {
           email: string
           first_name: string
           id: string
+          is_favorite: boolean
           last_name: string
           notes: string | null
           phone: string | null
+          updated_at: string
         }
         Insert: {
           company?: string | null
@@ -28,9 +30,11 @@ export type Database = {
           email: string
           first_name: string
           id?: string
+          is_favorite?: boolean
           last_name: string
           notes?: string | null
           phone?: string | null
+          updated_at?: string
         }
         Update: {
           company?: string | null
@@ -39,9 +43,11 @@ export type Database = {
           email?: string
           first_name?: string
           id?: string
+          is_favorite?: boolean
           last_name?: string
           notes?: string | null
           phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -74,6 +80,47 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      reminders: {
+        Row: {
+          completed: boolean
+          contact_id: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          remind_at: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean
+          contact_id?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          remind_at: string
+          title: string
+        }
+        Update: {
+          completed?: boolean
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          remind_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {
@@ -158,7 +205,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      contact_stats: {
+        Row: {
+          favorites: number | null
+          recent: number | null
+          total: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      recent_activity: {
+        Row: {
+          action: string | null
+          contact_name: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

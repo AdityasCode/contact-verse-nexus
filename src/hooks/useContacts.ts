@@ -12,6 +12,7 @@ export interface Contact {
   phone?: string;
   company?: string;
   notes?: string;
+  is_favorite: boolean;
   created_at: string;
   created_by: string;
 }

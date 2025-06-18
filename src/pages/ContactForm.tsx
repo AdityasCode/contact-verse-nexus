@@ -12,7 +12,8 @@ import {
   User, 
   Sun, 
   Moon, 
-  LogOut 
+  LogOut,
+  Star
 } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
 import { toast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ interface ContactFormData {
   phone: string;
   company: string;
   notes: string;
+  is_favorite: boolean;
 }
 
 const ContactForm = () => {
@@ -39,7 +41,8 @@ const ContactForm = () => {
     email: "",
     phone: "",
     company: "",
-    notes: ""
+    notes: "",
+    is_favorite: false
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +80,8 @@ const ContactForm = () => {
           email: data.email || '',
           phone: data.phone || '',
           company: data.company || '',
-          notes: data.notes || ''
+          notes: data.notes || '',
+          is_favorite: data.is_favorite || false
         });
       }
     } catch (error) {
@@ -149,6 +153,13 @@ const ContactForm = () => {
     }
   };
 
+  const toggleFavorite = () => {
+    setFormData(prev => ({
+      ...prev,
+      is_favorite: !prev.is_favorite
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -170,7 +181,8 @@ const ContactForm = () => {
             email: formData.email.trim(),
             phone: formData.phone.trim() || null,
             company: formData.company.trim() || null,
-            notes: formData.notes.trim() || null
+            notes: formData.notes.trim() || null,
+            is_favorite: formData.is_favorite
           })
           .eq('id', id);
 
@@ -199,6 +211,7 @@ const ContactForm = () => {
             phone: formData.phone.trim() || null,
             company: formData.company.trim() || null,
             notes: formData.notes.trim() || null,
+            is_favorite: formData.is_favorite,
             created_by: (await supabase.auth.getUser()).data.user?.id
           });
 
@@ -284,13 +297,33 @@ const ContactForm = () => {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>{isEditing ? "Edit Contact" : "Add New Contact"}</CardTitle>
-            <CardDescription>
-              {isEditing 
-                ? "Update the contact information below." 
-                : "Fill in the details to add a new contact to your list."
-              }
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{isEditing ? "Edit Contact" : "Add New Contact"}</CardTitle>
+                <CardDescription>
+                  {isEditing 
+                    ? "Update the contact information below." 
+                    : "Fill in the details to add a new contact to your list."
+                  }
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={toggleFavorite}
+                className="p-2"
+                aria-label={formData.is_favorite ? "Unmark as favorite" : "Mark as favorite"}
+              >
+                <Star 
+                  className={`w-6 h-6 ${
+                    formData.is_favorite 
+                      ? 'fill-yellow-400 text-yellow-400' 
+                      : 'text-gray-400 hover:text-yellow-400'
+                  }`} 
+                />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">

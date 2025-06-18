@@ -19,12 +19,16 @@ import {
   ArrowLeft,
   Sun,
   Moon,
-  LogOut
+  LogOut,
+  Download,
+  Upload,
+  Star
 } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
 import { useAuth } from "../hooks/useAuth";
 import { useContacts } from "../hooks/useContacts";
 import { useSupabaseConfig } from "../hooks/useSupabaseConfig";
+import { useCsvUtils } from "../hooks/useCsvUtils";
 
 const Contacts = () => {
   const { theme, toggleTheme, updateUserMetadata } = useTheme();
@@ -41,6 +45,7 @@ const Contacts = () => {
     totalCount,
     deleteContact 
   } = useContacts();
+  const { exportContacts, handleImportClick, isExporting, isImporting } = useCsvUtils();
 
   const handleThemeToggle = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -102,7 +107,7 @@ const Contacts = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Add Button */}
+        {/* Search, CSV Controls and Add Button */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex-1 max-w-md">
@@ -117,12 +122,32 @@ const Contacts = () => {
               </div>
             </div>
             
-            <Link to="/contacts/new">
-              <Button>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add Contact
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={exportContacts}
+                disabled={isExporting || loading}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {isExporting ? 'Exporting...' : 'Export CSV'}
               </Button>
-            </Link>
+              
+              <Button
+                variant="outline"
+                onClick={handleImportClick}
+                disabled={isImporting || loading}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {isImporting ? 'Importing...' : 'Import CSV'}
+              </Button>
+              
+              <Link to="/contacts/new">
+                <Button>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Contact
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -166,6 +191,7 @@ const Contacts = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]"></TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
@@ -177,6 +203,15 @@ const Contacts = () => {
               <TableBody>
                 {contacts.map((contact) => (
                   <TableRow key={contact.id}>
+                    <TableCell>
+                      <Star 
+                        className={`w-4 h-4 ${
+                          contact.is_favorite 
+                            ? 'fill-yellow-400 text-yellow-400' 
+                            : 'text-gray-300'
+                        }`} 
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       {contact.first_name} {contact.last_name}
                     </TableCell>

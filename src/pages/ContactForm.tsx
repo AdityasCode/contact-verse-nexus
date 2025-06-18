@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, 
   Save, 
@@ -13,11 +14,14 @@ import {
   Sun, 
   Moon, 
   LogOut,
-  Star
+  Star,
+  History
 } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
+import { useContactHistory } from "../hooks/useContactHistory";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ContactHistory } from "@/components/ContactHistory";
 
 interface ContactFormData {
   first_name: string;
@@ -33,9 +37,20 @@ const ContactForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { addHistoryEntry } = useContactHistory(id);
   const isEditing = Boolean(id);
   
   const [formData, setFormData] = useState<ContactFormData>({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    company: "",
+    notes: "",
+    is_favorite: false
+  });
+  
+  const [originalData, setOriginalData] = useState<ContactFormData>({
     first_name: "",
     last_name: "",
     email: "",
@@ -74,7 +89,7 @@ const ContactForm = () => {
       }
 
       if (data) {
-        setFormData({
+        const contactData = {
           first_name: data.first_name || '',
           last_name: data.last_name || '',
           email: data.email || '',
@@ -82,7 +97,9 @@ const ContactForm = () => {
           company: data.company || '',
           notes: data.notes || '',
           is_favorite: data.is_favorite || false
-        });
+        };
+        setFormData(contactData);
+        setOriginalData(contactData);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -160,6 +177,27 @@ const ContactForm = () => {
     }));
   };
 
+  const createHistoryEntries = async (contactId: string) => {
+    // Compare each field and create history entries for changes
+    const fields: (keyof ContactFormData)[] = [
+      'first_name', 'last_name', 'email', 'phone', 'company', 'notes', 'is_favorite'
+    ];
+
+    for (const field of fields) {
+      const oldValue = originalData[field];
+      const newValue = formData[field];
+      
+      if (oldValue !== newValue) {
+        await addHistoryEntry(
+          contactId,
+          field,
+          String(oldValue || ''),
+          String(newValue || '')
+        );
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -196,13 +234,16 @@ const ContactForm = () => {
           return;
         }
 
+        // Create history entries for changes
+        await createHistoryEntries(id);
+
         toast({
           title: "Contact updated!",
           description: `${formData.first_name} ${formData.last_name} has been updated.`,
         });
       } else {
         // Create new contact
-        const { error } = await supabase
+        const { data: newContact, error } = await supabase
           .from('contacts')
           .insert({
             first_name: formData.first_name.trim(),
@@ -213,7 +254,9 @@ const ContactForm = () => {
             notes: formData.notes.trim() || null,
             is_favorite: formData.is_favorite,
             created_by: (await supabase.auth.getUser()).data.user?.id
-          });
+          })
+          .select()
+          .single();
 
         if (error) {
           console.error('Error creating contact:', error);
@@ -223,6 +266,11 @@ const ContactForm = () => {
             variant: "destructive",
           });
           return;
+        }
+
+        // Create initial history entry for contact creation
+        if (newContact) {
+          await addHistoryEntry(newContact.id, 'contact_created', '', 'Contact created');
         }
 
         toast({
@@ -294,157 +342,177 @@ const ContactForm = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{isEditing ? "Edit Contact" : "Add New Contact"}</CardTitle>
-                <CardDescription>
-                  {isEditing 
-                    ? "Update the contact information below." 
-                    : "Fill in the details to add a new contact to your list."
-                  }
-                </CardDescription>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={toggleFavorite}
-                className="p-2"
-                aria-label={formData.is_favorite ? "Unmark as favorite" : "Mark as favorite"}
-              >
-                <Star 
-                  className={`w-6 h-6 ${
-                    formData.is_favorite 
-                      ? 'fill-yellow-400 text-yellow-400' 
-                      : 'text-gray-400 hover:text-yellow-400'
-                  }`} 
-                />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                  Basic Information
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name">First Name *</Label>
-                    <Input
-                      id="first_name"
-                      name="first_name"
-                      type="text"
-                      placeholder="John"
-                      value={formData.first_name}
-                      onChange={handleChange}
-                      className={validationErrors.first_name ? "border-red-500" : ""}
-                    />
-                    {validationErrors.first_name && (
-                      <p className="text-sm text-red-500">{validationErrors.first_name}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="last_name">Last Name *</Label>
-                    <Input
-                      id="last_name"
-                      name="last_name"
-                      type="text"
-                      placeholder="Doe"
-                      value={formData.last_name}
-                      onChange={handleChange}
-                      className={validationErrors.last_name ? "border-red-500" : ""}
-                    />
-                    {validationErrors.last_name && (
-                      <p className="text-sm text-red-500">{validationErrors.last_name}</p>
-                    )}
-                  </div>
-                </div>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs defaultValue="details" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="details">Contact Details</TabsTrigger>
+            {isEditing && (
+              <TabsTrigger value="history">
+                <History className="w-4 h-4 mr-2" />
+                Change History
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className={validationErrors.email ? "border-red-500" : ""}
-                  />
-                  {validationErrors.email && (
-                    <p className="text-sm text-red-500">{validationErrors.email}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="+1 (555) 123-4567"
-                      value={formData.phone}
-                      onChange={handleChange}
-                    />
+          <TabsContent value="details">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>{isEditing ? "Edit Contact" : "Add New Contact"}</CardTitle>
+                    <CardDescription>
+                      {isEditing 
+                        ? "Update the contact information below." 
+                        : "Fill in the details to add a new contact to your list."
+                      }
+                    </CardDescription>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Company</Label>
-                    <Input
-                      id="company"
-                      name="company"
-                      type="text"
-                      placeholder="Acme Corporation"
-                      value={formData.company}
-                      onChange={handleChange}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleFavorite}
+                    className="p-2"
+                    aria-label={formData.is_favorite ? "Unmark as favorite" : "Mark as favorite"}
+                  >
+                    <Star 
+                      className={`w-6 h-6 ${
+                        formData.is_favorite 
+                          ? 'fill-yellow-400 text-yellow-400' 
+                          : 'text-gray-400 hover:text-yellow-400'
+                      }`} 
                     />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                      Basic Information
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="first_name">First Name *</Label>
+                        <Input
+                          id="first_name"
+                          name="first_name"
+                          type="text"
+                          placeholder="John"
+                          value={formData.first_name}
+                          onChange={handleChange}
+                          className={validationErrors.first_name ? "border-red-500" : ""}
+                        />
+                        {validationErrors.first_name && (
+                          <p className="text-sm text-red-500">{validationErrors.first_name}</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="last_name">Last Name *</Label>
+                        <Input
+                          id="last_name"
+                          name="last_name"
+                          type="text"
+                          placeholder="Doe"
+                          value={formData.last_name}
+                          onChange={handleChange}
+                          className={validationErrors.last_name ? "border-red-500" : ""}
+                        />
+                        {validationErrors.last_name && (
+                          <p className="text-sm text-red-500">{validationErrors.last_name}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="john@example.com"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className={validationErrors.email ? "border-red-500" : ""}
+                      />
+                      {validationErrors.email && (
+                        <p className="text-sm text-red-500">{validationErrors.email}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="+1 (555) 123-4567"
+                          value={formData.phone}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="company">Company</Label>
+                        <Input
+                          id="company"
+                          name="company"
+                          type="text"
+                          placeholder="Acme Corporation"
+                          value={formData.company}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Additional Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                  Additional Information
-                </h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    placeholder="Add any additional notes about this contact..."
-                    value={formData.notes}
-                    onChange={handleChange}
-                    rows={4}
-                  />
-                </div>
-              </div>
+                  {/* Additional Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                      Additional Information
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes</Label>
+                      <Textarea
+                        id="notes"
+                        name="notes"
+                        placeholder="Add any additional notes about this contact..."
+                        value={formData.notes}
+                        onChange={handleChange}
+                        rows={4}
+                      />
+                    </div>
+                  </div>
 
-              {/* Form Actions */}
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <Link to="/contacts">
-                  <Button variant="outline" type="button">Cancel</Button>
-                </Link>
-                <Button type="submit" disabled={isLoading}>
-                  <Save className="w-4 h-4 mr-2" />
-                  {isLoading 
-                    ? (isEditing ? "Updating..." : "Adding...") 
-                    : (isEditing ? "Update Contact" : "Add Contact")
-                  }
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                  {/* Form Actions */}
+                  <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <Link to="/contacts">
+                      <Button variant="outline" type="button">Cancel</Button>
+                    </Link>
+                    <Button type="submit" disabled={isLoading}>
+                      <Save className="w-4 h-4 mr-2" />
+                      {isLoading 
+                        ? (isEditing ? "Updating..." : "Adding...") 
+                        : (isEditing ? "Update Contact" : "Add Contact")
+                      }
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {isEditing && (
+            <TabsContent value="history">
+              <ContactHistory contactId={id!} />
+            </TabsContent>
+          )}
+        </Tabs>
       </main>
     </div>
   );

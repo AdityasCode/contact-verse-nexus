@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, UserPlus, Settings, BarChart3, Sun, Moon, LogOut } from 'lucide-react';
+import { Users, UserPlus, Settings, BarChart3, Sun, Moon, LogOut, Calendar, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useSupabaseConfig } from '@/hooks/useSupabaseConfig';
+import { useReminders } from '@/hooks/useReminders';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Stats {
@@ -24,9 +25,16 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme, updateUserMetadata } = useTheme();
   const { getText, getSetting } = useSupabaseConfig();
+  const { reminders } = useReminders();
   const [stats, setStats] = useState<Stats>({ totalContacts: 0, favoriteContacts: 0 });
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Get upcoming reminders (next 5 incomplete ones)
+  const upcomingReminders = reminders
+    .filter(reminder => !reminder.completed)
+    .sort((a, b) => new Date(a.remind_at).getTime() - new Date(b.remind_at).getTime())
+    .slice(0, 5);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -92,6 +100,10 @@ const Index = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -151,7 +163,7 @@ const Index = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Contacts</CardTitle>
@@ -174,6 +186,16 @@ const Index = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Upcoming Reminders</CardTitle>
+              <Bell className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{upcomingReminders.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
               <Settings className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -190,8 +212,9 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Recent Activity */}
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity */}
           <Card>
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
@@ -223,13 +246,55 @@ const Index = () => {
             </CardContent>
           </Card>
 
+          {/* Upcoming Reminders */}
           <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Upcoming Reminders</CardTitle>
+                  <CardDescription>Your next reminders</CardDescription>
+                </div>
+                <Link to="/reminders">
+                  <Button variant="outline" size="sm">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    View All
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {upcomingReminders.length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  No upcoming reminders. Create your first reminder!
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingReminders.map((reminder) => (
+                    <div key={reminder.id} className="flex items-center space-x-3 text-sm">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <div className="text-gray-900 dark:text-white font-medium">
+                          {reminder.title}
+                        </div>
+                        <div className="text-gray-500 dark:text-gray-400">
+                          {formatDateTime(reminder.remind_at)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Navigation */}
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Quick Navigation</CardTitle>
               <CardDescription>Access your most used features</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Link to={getSetting('contacts_url', '/contacts')}>
                   <Button variant="outline" className="w-full justify-start">
                     <Users className="w-4 h-4 mr-2" />
@@ -240,6 +305,12 @@ const Index = () => {
                   <Button variant="outline" className="w-full justify-start">
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add New Contact
+                  </Button>
+                </Link>
+                <Link to="/reminders">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Manage Reminders
                   </Button>
                 </Link>
               </div>

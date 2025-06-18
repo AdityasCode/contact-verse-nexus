@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Contacts from "./pages/Contacts";
 import ContactForm from "./pages/ContactForm";
+import Reminders from "./pages/Reminders";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,11 @@ const App = () => (
             <Route path="/contacts/:id/edit" element={
               <ProtectedRoute>
                 <ContactForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/reminders" element={
+              <ProtectedRoute>
+                <Reminders />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

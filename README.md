@@ -1,26 +1,7 @@
-# Welcome to your Lovable project
-
-## Project info
-
-**URL**: https://lovable.dev/projects/fc8a06d2-cb5f-4e2d-9903-04bd28fee1c9
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/fc8a06d2-cb5f-4e2d-9903-04bd28fee1c9) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+You can view this website from the link in the sidebar or at the bottom of this README. Alternatively, to run this code locally, you can clone this repo and follow the steps below.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Follow these steps:
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
@@ -36,38 +17,17 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Key Features:
+Once you sign up/log in, you should be able to access all features. These include:
+- Creating contacts and adding details (such as name, email, number, description, as well as favouriting a contact) (from Quick Nav or the All Contacts page),
+- Updating or deleting contacts (from the All Contacts page),
+- Seeing a history of changes for a contact (on their specific Contact page),
+- Exporting all contacts in form of a CSV,
+- Importing one or more contacts from a CSV exported from our platform (both from the All Contacts page),
+- Seeing your activity, favorites and contact metrics (from the index page),
+- and setting Reminders (from the Reminders page).
+Reminders include a title, description, time, and can optionally specify a contact, and can be marked as complete or incomplete. A feature for receiving email notifications for your reminders is currently in development.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+This app was created with Lovable and ChatGPT. Lovable was used to design the app and add changes, and ChatGPT was used to design detailed, exhaustive prompts for Lovable to maximize efficiency, reduce errors and ambiguity and independent decision-making.
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/fc8a06d2-cb5f-4e2d-9903-04bd28fee1c9) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Website link: https://contact-verse-nexus.lovable.app

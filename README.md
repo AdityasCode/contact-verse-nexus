@@ -28,6 +28,6 @@ Once you sign up/log in, you should be able to access all features. These includ
 - and setting Reminders (from the Reminders page).
 Reminders include a title, description, time, and can optionally specify a contact, and can be marked as complete or incomplete. A feature for receiving email notifications for your reminders is currently in development.
 
-This app was created with Lovable and ChatGPT. Lovable was used to design the app and add changes, and ChatGPT was used to design detailed, exhaustive prompts for Lovable to maximize efficiency, reduce errors and ambiguity and independent decision-making.
+This app was created with Lovable and ChatGPT, and is hosted on Supabase. Lovable was used to design the app and add changes, and ChatGPT was used to design detailed, exhaustive prompts for Lovable to maximize efficiency, reduce errors and ambiguity and independent decision-making. The backend, database and authentication are hosted on Supabase.
 
 Website link: https://contact-verse-nexus.lovable.app

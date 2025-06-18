@@ -117,7 +117,7 @@ This is an automated reminder from your Contact Manager.
 
         // Send email
         const emailResponse = await resend.emails.send({
-          from: "Contact Manager <reminders@resend.dev>",
+          from: "Contact Manager <onboarding@resend.dev>",
           to: [userEmail],
           subject: `Reminder: ${reminder.title}`,
           text: emailContent,

@@ -15,7 +15,6 @@ import {
   UserPlus, 
   Search, 
   Edit, 
-  Trash2,
   ArrowLeft,
   Sun,
   Moon,
@@ -29,6 +28,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useContacts } from "../hooks/useContacts";
 import { useSupabaseConfig } from "../hooks/useSupabaseConfig";
 import { useCsvUtils } from "../hooks/useCsvUtils";
+import { DeleteContactDialog } from "../components/DeleteContactDialog";
 
 const Contacts = () => {
   const { theme, toggleTheme, updateUserMetadata } = useTheme();
@@ -226,14 +226,10 @@ const Contacts = () => {
                             <Edit className="w-4 h-4" />
                           </Button>
                         </Link>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => deleteContact(contact.id)}
-                          className="text-red-600 hover:text-red-700 hover:border-red-300"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <DeleteContactDialog
+                          contactName={`${contact.first_name} ${contact.last_name}`}
+                          onConfirm={() => deleteContact(contact.id)}
+                        />
                       </div>
                     </TableCell>
                   </TableRow>
